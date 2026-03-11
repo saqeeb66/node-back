@@ -1,0 +1,163 @@
+const repo = require("../repositories/tripRepository");
+const tripRepo = require("../repositories/tripRepository");
+const driverRepo = require("../repositories/driverRepository");
+
+
+
+/* USER */
+
+exports.bookTrip = async (trip) => {
+  return await repo.createTrip(trip);
+};
+
+exports.getUserTrips = async (userId) => {
+  return await repo.findByUser(userId);
+};
+
+/* ADMIN */
+
+exports.getAllTrips = async () => {
+  return await repo.findAll();
+};
+
+exports.assignDriver = async (
+  tripId,
+  driverId,
+  driverName,
+  driverPhone,
+  carType,
+  carNumber
+) => {
+
+  const trip = await repo.findById(tripId);
+
+  if(!trip) throw new Error("Trip not found");
+
+  if(trip.status !== "PENDING")
+    throw new Error("Trip not in PENDING state");
+
+  trip.driverId = driverId;
+  trip.driverName = driverName;
+  trip.driverPhone = driverPhone;
+  trip.driverCarType = carType;
+  trip.driverCarNumber = carNumber;
+  trip.status = "DRIVER_ASSIGNED";
+
+  await repo.updateStatus(tripId,"DRIVER_ASSIGNED");
+};
+
+
+/* DRIVER */
+
+exports.startTrip = async (
+  tripId,
+  driverId,
+  startLocation,
+  startKm,
+  image
+) => {
+
+  const trip = await repo.findById(tripId);
+
+  if(!trip) throw new Error("Trip not found");
+
+  if(trip.driverId !== driverId)
+    throw new Error("Driver not assigned");
+
+  if(trip.status !== "DRIVER_ASSIGNED")
+    throw new Error("Trip cannot start");
+
+  trip.startLocation = startLocation;
+  trip.startKm = startKm;
+  trip.startTime = Date.now();
+  trip.odometerImageUrl = image;
+  trip.status = "TRIP_STARTED";
+
+  await repo.updateStartTrip(trip);
+};
+
+
+exports.holdTrip = async (tripId) => {
+
+  const trip = await repo.findById(tripId);
+
+  if(trip.status !== "TRIP_STARTED")
+    throw new Error("Trip cannot hold");
+
+  await repo.updateStatus(tripId,"TRIP_ON_HOLD");
+};
+
+
+exports.resumeTrip = async (tripId) => {
+
+  const trip = await repo.findById(tripId);
+
+  if(trip.status !== "TRIP_ON_HOLD")
+    throw new Error("Trip cannot resume");
+
+  await repo.updateStatus(tripId,"TRIP_STARTED");
+};
+
+
+exports.assignDriver = async (tripId, driverId) => {
+
+  const trip = await tripRepo.findById(tripId);
+  const driver = await driverRepo.findById(driverId);
+
+  if (!trip) {
+    throw new Error("Trip not found");
+  }
+
+  if (!driver) {
+    throw new Error("Driver not found");
+  }
+
+  trip.driverId = driver.driverId;
+  trip.driverName = driver.name;
+  trip.driverPhone = driver.phone;
+  trip.driverCarType = driver.carType;
+  trip.driverCarNumber = driver.carNumber;
+  trip.status = "DRIVER_ASSIGNED";
+
+  await tripRepo.assignDriver(trip);
+
+  driver.available = false;
+  driver.currentTripId = tripId;
+
+  await driverRepo.save(driver);
+};
+
+
+exports.endTrip = async (
+  tripId,
+  endLocation,
+  endKm,
+  endImage,
+  signature
+) => {
+
+  const trip = await repo.findById(tripId);
+
+  if(trip.status !== "TRIP_STARTED")
+    throw new Error("Trip cannot end");
+
+  trip.endLocation = endLocation;
+  trip.endKm = endKm;
+  trip.endTime = Date.now();
+  trip.endOdometerImageUrl = endImage;
+  trip.signatureUrl = signature;
+  trip.status = "TRIP_COMPLETED";
+
+  await repo.updateEndTrip(trip);
+};
+
+
+exports.getTripById = async (tripId) => {
+
+  const trip = await repo.findById(tripId);
+
+  if(!trip)
+    throw new Error("Trip not found");
+
+  return trip;
+};
