@@ -1,7 +1,7 @@
 const { PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awsS3");
 
-const BUCKET = process.env.AWS_S3_BUCKET;
+const BUCKET = process.env.S3_BUCKET;
 const REGION = process.env.AWS_REGION;
 
 /* START ODOMETER */
