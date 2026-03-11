@@ -5,7 +5,6 @@ const BUCKET = process.env.S3_BUCKET;
 const REGION = process.env.AWS_REGION;
 
 exports.uploadSignature = async (req, res) => {
-
   try {
 
     const tripId = req.params.tripId;
@@ -24,10 +23,10 @@ exports.uploadSignature = async (req, res) => {
 
     const imageBuffer = Buffer.from(base64, "base64");
 
-    const key = `signatures/${tripId}.png`;
+    const key = `signatures/${tripId}_${Date.now()}.png`;
 
     const command = new PutObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET,
+      Bucket: BUCKET,
       Key: key,
       Body: imageBuffer,
       ContentType: "image/png"
@@ -35,20 +34,16 @@ exports.uploadSignature = async (req, res) => {
 
     await s3.send(command);
 
-    const url = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
 
     res.json(url);
 
   } catch (err) {
-
     console.error(err);
-
     res.status(500).json({
       error: "Signature upload failed"
     });
-
   }
-
 };
 
 exports.getSignature = async (req, res) => {
@@ -58,7 +53,7 @@ exports.getSignature = async (req, res) => {
 
     const key = `signatures/${tripId}.png`;
 
-    const url = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
 
     res.redirect(url);
 
