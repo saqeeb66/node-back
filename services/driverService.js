@@ -142,6 +142,42 @@ exports.markDriverUnavailableOnResume = async (driverUserId, tripId) => {
 };
 
 
+/* ================= DRIVER ACTIVE TRIPS ================= */
+
+exports.getActiveTripsForDriver = async (driverUserId) => {
+
+  const driver = await driverRepo.findByUserId(driverUserId);
+  if (!driver) throw new Error("Driver not found");
+
+  const trips = await tripRepo.findAll();
+
+  return trips.filter(t =>
+    t.driverId === driver.driverId &&
+    (
+      t.status === "DRIVER_ASSIGNED" ||
+      t.status === "TRIP_STARTED" ||
+      t.status === "TRIP_ON_HOLD"
+    )
+  );
+};
+
+
+/* ================= DRIVER COMPLETED TRIPS ================= */
+
+exports.getCompletedTripsForDriver = async (driverUserId) => {
+
+  const driver = await driverRepo.findByUserId(driverUserId);
+  if (!driver) throw new Error("Driver not found");
+
+  const trips = await tripRepo.findAll();
+
+  return trips.filter(t =>
+    t.driverId === driver.driverId &&
+    t.status === "TRIP_COMPLETED"
+  );
+};
+
+
 exports.markDriverAvailableOnCompletion = async (driverUserId) => {
 
   const driver = await driverRepo.findByUserId(driverUserId);

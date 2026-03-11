@@ -2,9 +2,7 @@ const repo = require("../repositories/tripRepository");
 const tripRepo = require("../repositories/tripRepository");
 const driverRepo = require("../repositories/driverRepository");
 
-
-
-/* USER */
+/* ================= USER ================= */
 
 exports.bookTrip = async (trip) => {
   return await repo.createTrip(trip);
@@ -14,7 +12,7 @@ exports.getUserTrips = async (userId) => {
   return await repo.findByUser(userId);
 };
 
-/* ADMIN */
+/* ================= ADMIN ================= */
 
 exports.getAllTrips = async () => {
   return await repo.findAll();
@@ -31,9 +29,9 @@ exports.assignDriver = async (
 
   const trip = await repo.findById(tripId);
 
-  if(!trip) throw new Error("Trip not found");
+  if (!trip) throw new Error("Trip not found");
 
-  if(trip.status !== "PENDING")
+  if (trip.status !== "PENDING")
     throw new Error("Trip not in PENDING state");
 
   trip.driverId = driverId;
@@ -43,11 +41,18 @@ exports.assignDriver = async (
   trip.driverCarNumber = carNumber;
   trip.status = "DRIVER_ASSIGNED";
 
-  await repo.updateStatus(tripId,"DRIVER_ASSIGNED");
+  await repo.updateStatus(tripId, "DRIVER_ASSIGNED");
+
+  const driver = await driverRepo.findById(driverId);
+
+  driver.available = false;
+  driver.currentTripId = tripId;
+
+  await driverRepo.save(driver);
 };
 
 
-/* DRIVER */
+/* ================= DRIVER ================= */
 
 exports.startTrip = async (
   tripId,
@@ -59,12 +64,12 @@ exports.startTrip = async (
 
   const trip = await repo.findById(tripId);
 
-  if(!trip) throw new Error("Trip not found");
+  if (!trip) throw new Error("Trip not found");
 
-  if(trip.driverId !== driverId)
+  if (trip.driverId !== driverId)
     throw new Error("Driver not assigned");
 
-  if(trip.status !== "DRIVER_ASSIGNED")
+  if (trip.status !== "DRIVER_ASSIGNED")
     throw new Error("Trip cannot start");
 
   trip.startLocation = startLocation;
@@ -74,6 +79,15 @@ exports.startTrip = async (
   trip.status = "TRIP_STARTED";
 
   await repo.updateStartTrip(trip);
+
+  /* DRIVER SHOULD BE BUSY */
+
+  const driver = await driverRepo.findById(driverId);
+
+  driver.available = false;
+  driver.currentTripId = tripId;
+
+  await driverRepo.save(driver);
 };
 
 
@@ -81,10 +95,19 @@ exports.holdTrip = async (tripId) => {
 
   const trip = await repo.findById(tripId);
 
-  if(trip.status !== "TRIP_STARTED")
+  if (trip.status !== "TRIP_STARTED")
     throw new Error("Trip cannot hold");
 
-  await repo.updateStatus(tripId,"TRIP_ON_HOLD");
+  await repo.updateStatus(tripId, "TRIP_ON_HOLD");
+
+  /* DRIVER BECOMES AVAILABLE */
+
+  const driver = await driverRepo.findById(trip.driverId);
+
+  driver.available = true;
+  driver.currentTripId = null;
+
+  await driverRepo.save(driver);
 };
 
 
@@ -92,34 +115,14 @@ exports.resumeTrip = async (tripId) => {
 
   const trip = await repo.findById(tripId);
 
-  if(trip.status !== "TRIP_ON_HOLD")
+  if (trip.status !== "TRIP_ON_HOLD")
     throw new Error("Trip cannot resume");
 
-  await repo.updateStatus(tripId,"TRIP_STARTED");
-};
+  await repo.updateStatus(tripId, "TRIP_STARTED");
 
+  /* DRIVER BUSY AGAIN */
 
-exports.assignDriver = async (tripId, driverId) => {
-
-  const trip = await tripRepo.findById(tripId);
-  const driver = await driverRepo.findById(driverId);
-
-  if (!trip) {
-    throw new Error("Trip not found");
-  }
-
-  if (!driver) {
-    throw new Error("Driver not found");
-  }
-
-  trip.driverId = driver.driverId;
-  trip.driverName = driver.name;
-  trip.driverPhone = driver.phone;
-  trip.driverCarType = driver.carType;
-  trip.driverCarNumber = driver.carNumber;
-  trip.status = "DRIVER_ASSIGNED";
-
-  await tripRepo.assignDriver(trip);
+  const driver = await driverRepo.findById(trip.driverId);
 
   driver.available = false;
   driver.currentTripId = tripId;
@@ -138,7 +141,7 @@ exports.endTrip = async (
 
   const trip = await repo.findById(tripId);
 
-  if(trip.status !== "TRIP_STARTED")
+  if (trip.status !== "TRIP_STARTED")
     throw new Error("Trip cannot end");
 
   trip.endLocation = endLocation;
@@ -149,14 +152,25 @@ exports.endTrip = async (
   trip.status = "TRIP_COMPLETED";
 
   await repo.updateEndTrip(trip);
+
+  /* DRIVER AVAILABLE AGAIN */
+
+  const driver = await driverRepo.findById(trip.driverId);
+
+  driver.available = true;
+  driver.currentTripId = null;
+
+  await driverRepo.save(driver);
 };
 
+
+/* ================= GET TRIP ================= */
 
 exports.getTripById = async (tripId) => {
 
   const trip = await repo.findById(tripId);
 
-  if(!trip)
+  if (!trip)
     throw new Error("Trip not found");
 
   return trip;

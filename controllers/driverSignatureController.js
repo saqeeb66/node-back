@@ -1,7 +1,7 @@
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awsS3");
 
-const BUCKET = process.env.S3_BUCKET;
+const BUCKET = process.env.AWS_S3_BUCKET;
 const REGION = process.env.AWS_REGION;
 
 exports.uploadSignature = async (req, res) => {
@@ -10,7 +10,13 @@ exports.uploadSignature = async (req, res) => {
 
     const tripId = req.params.tripId;
 
-    let base64 = req.body;
+    if (!req.body || !req.body.signature) {
+      return res.status(400).json({
+        error: "Signature data missing"
+      });
+    }
+
+    let base64 = req.body.signature;
 
     if (base64.includes(",")) {
       base64 = base64.split(",")[1];
@@ -21,7 +27,7 @@ exports.uploadSignature = async (req, res) => {
     const key = `signatures/${tripId}.png`;
 
     const command = new PutObjectCommand({
-      Bucket: BUCKET,
+      Bucket: process.env.AWS_S3_BUCKET,
       Key: key,
       Body: imageBuffer,
       ContentType: "image/png"
@@ -29,7 +35,7 @@ exports.uploadSignature = async (req, res) => {
 
     await s3.send(command);
 
-    const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
+    const url = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 
     res.json(url);
 
@@ -44,7 +50,6 @@ exports.uploadSignature = async (req, res) => {
   }
 
 };
-
 
 exports.getSignature = async (req, res) => {
   try {
