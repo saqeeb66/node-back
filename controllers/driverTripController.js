@@ -17,6 +17,24 @@ exports.startTrip = async(req,res)=>{
   res.json({message:"Trip started"});
 };
 
+exports.getActiveTrips = async (req, res) => {
+  try {
+    const trips = await tripService.getActiveTripsForDriver(req.user.userId);
+    res.json(trips);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getCompletedTrips = async (req, res) => {
+  try {
+    const trips = await tripService.getCompletedTripsForDriver(req.user.userId);
+    res.json(trips);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 exports.endTrip = async(req,res)=>{
 
