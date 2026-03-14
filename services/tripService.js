@@ -41,7 +41,7 @@ exports.assignDriver = async (
   trip.driverCarNumber = carNumber;
   trip.status = "DRIVER_ASSIGNED";
 
-  await repo.updateStatus(tripId, "DRIVER_ASSIGNED");
+  await repo.updateTrip(trip);
 
   const driver = await driverRepo.findById(driverId);
 
