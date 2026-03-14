@@ -1,4 +1,5 @@
 const tripService = require("../services/tripService");
+const driverRepo = require("../repositories/driverRepository");
 
 exports.createTrip = async (req,res)=>{
 
@@ -16,7 +17,21 @@ exports.assignDriver = async (req, res) => {
 
     const { tripId, driverId } = req.params;
 
-    await tripService.assignDriver(tripId, driverId);
+    // 🔹 get driver details
+    const driver = await driverRepo.findById(driverId);
+
+    if (!driver) {
+      return res.status(404).json({ error: "Driver not found" });
+    }
+
+    await tripService.assignDriver(
+      tripId,
+      driverId,
+      driver.name,
+      driver.phone,
+      driver.carType,
+      driver.carNumber
+    );
 
     res.json({ message: "Driver assigned successfully" });
 
