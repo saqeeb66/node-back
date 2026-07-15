@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
+const connectDB = require("./config/database");
 
 /* ================= ROUTES ================= */
 
@@ -16,12 +17,15 @@ const adminDriverRoutes = require("./routes/adminDriverRoutes");
 const driverTripRoutes = require("./routes/driverTripRoutes");
 const driverFileRoutes = require("./routes/driverFileRoutes");
 
-
 const expenseRoutes = require("./routes/expenseRoutes");
 
 /* ================= APP INIT ================= */
 
 const app = express();
+
+/* ================= CONNECT DATABASE ================= */
+
+connectDB();
 
 /* ================= MIDDLEWARE ================= */
 
@@ -30,8 +34,8 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+/* ================= REQUEST LOGGER ================= */
 
-/* Request logger (very useful for debugging frontend calls) */
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
   next();
@@ -47,12 +51,13 @@ app.use("/api/admin/trips", adminTripRoutes);
 app.use("/api/admin/drivers", adminDriverRoutes);
 
 app.use("/api/driver/trips", driverTripRoutes);
+
 app.use("/api/driver/expenses", expenseRoutes);
 app.use("/api/admin/expenses", expenseRoutes);
-app.use("/api/driver", driverFileRoutes);
-app.use("/api/admin", driverFileRoutes);   // add this
-app.use("/api/admin/signature", driverFileRoutes);
 
+app.use("/api/driver", driverFileRoutes);
+app.use("/api/admin", driverFileRoutes);
+app.use("/api/admin/signature", driverFileRoutes);
 
 /* ================= TEST ROUTE ================= */
 
